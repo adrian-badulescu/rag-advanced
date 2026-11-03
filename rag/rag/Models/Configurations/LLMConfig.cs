@@ -4,6 +4,8 @@ public class LLMConfig
 {
     public string LLMModel { get; set; } = string.Empty;
     
+    public float SimilarityThreshold { get; set; } = 0.0f;
+    
     public int MaxOutputTokens { get; set; } = 0;
     
     public float Temperature { get; set; } = 0;
