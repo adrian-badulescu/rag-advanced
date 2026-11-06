@@ -1,3 +1,5 @@
+using rag.Data;
+
 namespace rag.Services.Extensions;
 
 public static class ServiceCollectionExtensions
@@ -9,9 +11,10 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IEmbeddingService, EmbeddingService>();
         services.AddTransient<IDataIngestionService, DataIngestionService>();
         services.AddTransient<IDataRetrievalService, DataRetrievalService>();
+        services.AddSingleton<IOnnxRerankerService, OnnxRerankerService>();
+        services.AddScoped<IHybridSearchRepository,HybridSearchRepository>();
+        
         
         return services;
     }
-    
-    
 }
