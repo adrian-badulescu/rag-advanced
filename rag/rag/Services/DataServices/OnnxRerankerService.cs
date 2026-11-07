@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using Microsoft.ML.Tokenizers;
+using Starlings.Tokenizers;
 using rag.Models;
 using rag.Models.Db;
 
@@ -17,8 +17,9 @@ public class OnnxRerankerService : IOnnxRerankerService, IDisposable
     {
         _options = options.Value;
         
-        string modelDirectory = _options.RerankerModelPath 
-                                ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Models", "RerankerModel");
+        string modelDirectory = Path.Combine(AppContext.BaseDirectory, "Models", "RerankerModel");
+        
+        Console.WriteLine($"here { modelDirectory }");
         
         string modelPath = Path.Combine(modelDirectory, "model.onnx");
         string tokenizerPath = Path.Combine(modelDirectory, "tokenizer.json"); 
@@ -31,7 +32,8 @@ public class OnnxRerankerService : IOnnxRerankerService, IDisposable
         _session = new InferenceSession(modelPath);
 
         using Stream tokenizerStream = File.OpenRead(tokenizerPath);
-        _tokenizer = BpeTokenizer.Create(tokenizerStream, null);
+        _tokenizer = Tokenizer.FromFile(tokenizerPath)
+            .WithPadding(new PaddingOptions(PadId:1, PadToken:"<|padding|>"));
     }
     
     public List<TextChunkWithScore> Rank(string query, List<TextChunk> candidates, int topK = 3)
@@ -44,26 +46,23 @@ public class OnnxRerankerService : IOnnxRerankerService, IDisposable
         {
             string combinedText = $"{query} [SEP] {candidate.Content}";
             
-            var encodedResult = _tokenizer.EncodeToIds(combinedText);
-            var ids = encodedResult.Select(id => (long)id).ToArray();
+            var encodedResult = _tokenizer.Encode(combinedText);
+            
+            long[] ids = [.. encodedResult.Ids.Select(id => (long)id)];
+            long[] attentionMask = [.. encodedResult.AttentionMask.Select(m => (long)m)];
 
             if (ids.Length == 0) continue;
-
-            var attentionMask = Enumerable.Repeat(1L, ids.Length).ToArray();
-            var tokenTypeIds = new long[ids.Length]; 
             
             int batchSize = 1;
             int sequenceLength = ids.Length;
 
             var inputIdsTensor = new DenseTensor<long>(ids, new[] { batchSize, sequenceLength });
             var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { batchSize, sequenceLength });
-            var tokenTypeIdsTensor = new DenseTensor<long>(tokenTypeIds, new[] { batchSize, sequenceLength });
 
             var inputs = new NamedOnnxValue[]
             {
                 NamedOnnxValue.CreateFromTensor("input_ids", inputIdsTensor),
-                NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor),
-                NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIdsTensor)
+                NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor)
             };
 
             using var results = _session.Run(inputs);
@@ -77,6 +76,7 @@ public class OnnxRerankerService : IOnnxRerankerService, IDisposable
                 Chunk = candidate,
                 Score = score
             });
+            Console.WriteLine($"Candidate: {candidate.Content.Substring(0, Math.Min(30, candidate.Content.Length))}... | Score: {score}");
         }
         
         return scoredResults

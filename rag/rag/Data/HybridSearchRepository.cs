@@ -27,7 +27,7 @@ public class HybridSearchRepository : IHybridSearchRepository
         
         var sql = $@"
             WITH vector_search AS (
-                SELECT ""key"", ROW_NUMBER() OVER (ORDER BY ""Embedding"" <=> @vector) as rank
+                SELECT ""Key"", ROW_NUMBER() OVER (ORDER BY ""Embedding"" <=> @vector) as rank
                 FROM ""TextChunks""
                 ORDER BY ""Embedding"" <=> @vector
                 LIMIT @topK
@@ -43,7 +43,7 @@ public class HybridSearchRepository : IHybridSearchRepository
                 c.""Key"", c.""Content"", c.""Document"", c.""Embedding""
             FROM ""TextChunks"" c
             LEFT JOIN vector_search v ON c.""Key"" = v.""Key""
-            LEFT JOIN text_search t ON c.""key"" = t.""Key""
+            LEFT JOIN text_search t ON c.""Key"" = t.""Key""
             WHERE v.""Key"" IS NOT NULL OR t.""Key"" IS NOT NULL
             ORDER BY (COALESCE(1.0 / (60.0 + v.rank), 0.0) + COALESCE(1.0 / (60.0 + t.rank), 0.0)) DESC
             LIMIT @topK;";
