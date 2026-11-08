@@ -11,7 +11,6 @@ public static class IngestEndpoint
         endpoints.MapPost("/api/ingest",
             async ([FromBody] IngestRequest request, [FromServices] IDataIngestionService ingestionService) =>
             {
-                Console.WriteLine("--- A AJUNS CEREREA PE /api/ingest ---");
                 if (string.IsNullOrWhiteSpace(request.DocumentName) || string.IsNullOrWhiteSpace(request.FullText))
                 {
                     return Results.BadRequest("Document name and full text are required.");
@@ -19,7 +18,7 @@ public static class IngestEndpoint
 
                 try
                 {
-                    await ingestionService.IngestDocumentAsync(request.DocumentName, request.FullText, "en");
+                    await ingestionService.IngestDocumentAsync(request.DocumentName, request.FullText, request.Language);
                     return Results.Ok(new { message = $"Document '{request.DocumentName}' successfully ingested and vectorized." });
                 }
                 catch (Exception ex)
@@ -29,6 +28,5 @@ public static class IngestEndpoint
             });
 
         return endpoints;
-
     }
 }

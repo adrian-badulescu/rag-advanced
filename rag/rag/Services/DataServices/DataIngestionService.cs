@@ -26,7 +26,7 @@ public class DataIngestionService : IDataIngestionService
         _llmOptions = llmOptions.Value;
     }
 
-    public async Task<List<string>> CreateSemanticChunksAsync(List<string> sentences)
+    private async Task<List<string>> CreateSemanticChunksAsync(List<string> sentences)
     {
         var chunks = new List<string>();
         if (sentences == null || sentences.Count == 0) return chunks;
@@ -99,23 +99,25 @@ public class DataIngestionService : IDataIngestionService
             
             List<string> semanticChunks = await CreateSemanticChunksAsync(sentences);
 
-            // Step E: Generate the vector and save it in Db
-            foreach (var chunkContent in semanticChunks)
+            // Step E: Generate vectors in batch and save them in Db
+            var chunkList = semanticChunks.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+            if (chunkList.Any())
             {
-                if (string.IsNullOrWhiteSpace(chunkContent)) continue;
-            
-                float[] finalEmbeddingVector = await _embeddingService.GetEmbeddingAsync(chunkContent);
-            
-                var textChunk = new TextChunk
-                {
-                    Content = chunkContent,
-                    Document = documentName,
-                    Embedding = new Vector(finalEmbeddingVector)
-                };
+                List<float[]> embeddingVectors = await _embeddingService.GetEmbeddingsAsync(chunkList);
 
-                _dbContext.TextChunks.Add(textChunk);
+                for (int i = 0; i < chunkList.Count; i++)
+                {
+                    var textChunk = new TextChunk
+                    {
+                        Content = chunkList[i],
+                        Document = documentName,
+                        Embedding = new Vector(embeddingVectors[i])
+                    };
+
+                    _dbContext.TextChunks.Add(textChunk);
+                }
             }
-        
+
             await _dbContext.SaveChangesAsync();
             _dbContext.ChangeTracker.Clear();
         }

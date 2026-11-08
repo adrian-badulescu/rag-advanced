@@ -4,6 +4,9 @@ namespace rag.Models;
 
 public class IngestRequest
 {
+    [JsonPropertyName("language")]
+    public string Language { get; set; } = "en";
+    
     [JsonPropertyName("documentName")]
     public string DocumentName { get; set; } = string.Empty;
     
