@@ -19,7 +19,7 @@ public static class IngestEndpoint
 
                 try
                 {
-                    await ingestionService.IngestDocumentAsync(request.DocumentName, request.FullText);
+                    await ingestionService.IngestDocumentAsync(request.DocumentName, request.FullText, "en");
                     return Results.Ok(new { message = $"Document '{request.DocumentName}' successfully ingested and vectorized." });
                 }
                 catch (Exception ex)
