@@ -13,7 +13,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IDataRetrievalService, DataRetrievalService>();
         services.AddSingleton<IOnnxRerankerService, OnnxRerankerService>();
         services.AddScoped<IHybridSearchRepository,HybridSearchRepository>();
-        
+        services.AddSingleton<IChatHistoryManager, InMemoryChatHistoryManager>();
         
         return services;
     }

@@ -4,6 +4,8 @@ public class LLMConfig
 {
     public string RerankerModelPath { get; set; } = string.Empty;
     
+    public int MaxHistoryMessages = 0;
+    
     public string TokenizerPath  { get; set; } = string.Empty;
     public float SimilarityThreshold { get; set; } = 0.0f;
     public int MaxOutputTokens { get; set; } = 0;
