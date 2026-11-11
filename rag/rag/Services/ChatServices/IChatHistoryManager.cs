@@ -1,4 +1,4 @@
-namespace rag.Services;
+namespace rag.Services.ChatServices;
 
 public interface IChatHistoryManager
 {

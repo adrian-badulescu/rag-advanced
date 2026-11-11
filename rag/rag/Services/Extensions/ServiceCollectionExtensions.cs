@@ -1,4 +1,5 @@
 using rag.Data;
+using rag.Services.ChatServices;
 
 namespace rag.Services.Extensions;
 

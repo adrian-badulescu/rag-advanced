@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using rag.Models;
 
-namespace rag.Services;
+namespace rag.Services.ChatServices;
 
 public class ChatService : IChatService
 {
@@ -9,25 +9,32 @@ public class ChatService : IChatService
     private readonly LLMConfig _options;
     private readonly EndpointsConfig _endpoints;
     private readonly IDataRetrievalService _retrievalService;
+    private readonly IChatHistoryManager _historyManager;
     
     
     public ChatService(IHttpClientService  httpClientService, 
         IOptions<LLMConfig> options, 
         IOptions<EndpointsConfig> endpoints, 
-        IDataRetrievalService retrievalService)
+        IDataRetrievalService retrievalService,
+        IChatHistoryManager historyManager)
     {
         _httpClientService = httpClientService;
         _options = options.Value;
         _endpoints = endpoints.Value;
         _retrievalService = retrievalService;
+        _historyManager = historyManager;
     }
 
-    public async Task<string> GetAiResponseAsync(string prompt)
+    public async Task<string> GetAiResponseAsync(string session,string role,string prompt)
     {
+        string chatHistoryContext = _historyManager.AddAndGetContext(session, role, prompt);
+        Console.WriteLine($"chat service chatHistoryContext - {chatHistoryContext};");
+        
         List<string> relevantChunks = await _retrievalService.GetRelevantContextAsync(prompt, maxResults: 3);
         string dbResult = string.Join("\n---\n", relevantChunks);
         
-        string promptFinal = string.Format(_options.PromptTemplate, dbResult, prompt);
+        string promptFinal = string.Format(_options.PromptTemplate, chatHistoryContext, dbResult, prompt);
+        Console.WriteLine($"chat service promptFinal - {promptFinal};");
         
         var requestBody = new
         {
@@ -61,9 +68,12 @@ public class ChatService : IChatService
             }
             
             var result =  await response.Content.ReadFromJsonAsync<GeminiChatResponse>();
-            var responseText = result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+            var responseText = result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text
+                               ?? "No response returned from the LLM model.";
             
-            return responseText ?? "No response returned from the LLM model.";
+            var finalContext  = _historyManager.AddAndGetContext(session, "Assistant", responseText);
+            Console.WriteLine($"chat service promptFinal - {finalContext};");
+            return responseText;
         }
         catch (Exception ex)
         {
@@ -71,6 +81,4 @@ public class ChatService : IChatService
             throw;
         }
     }
-    
-    
 }

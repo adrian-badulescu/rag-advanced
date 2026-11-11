@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using rag.Models;
-using rag.Services;
+using rag.Services.ChatServices;
 
 namespace rag.Controllers;
 
@@ -15,7 +15,9 @@ public static class ChatsEndpoint
                 return Results.BadRequest(new {error = "Please provide a message or a shorter one"});
             }
             
-            string responseMessage = await chatService.GetAiResponseAsync(request.Message);
+            Console.WriteLine($"ENDPOINT - {request.SessionId} - {request.Role} - {request.Message}");
+            
+            string responseMessage = await chatService.GetAiResponseAsync(request.SessionId, request.Role,request.Message);
 
             return Results.Ok(responseMessage);
         }).RequireRateLimiting("chat-policy");

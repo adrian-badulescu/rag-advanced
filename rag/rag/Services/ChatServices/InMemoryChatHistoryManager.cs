@@ -4,17 +4,18 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using rag.Models;
 
-namespace rag.Services;
+namespace rag.Services.ChatServices;
 
 public class InMemoryChatHistoryManager : IChatHistoryManager
 {
     private readonly IMemoryCache _cache;
-    private int _maxHistorySize;
+    private LLMConfig _options;
     
     public InMemoryChatHistoryManager(IMemoryCache cache, IOptions<LLMConfig> options)
     {
-        _maxHistorySize = options.Value.MaxHistoryMessages;
+        _options = options.Value;
         _cache = cache;
+        Console.WriteLine($"[DEBUG] InMemoryChatHistoryManager inițializat cu MaxHistoryMessages = {_options.MaxHistoryMessages}");
     }
 
     public string AddAndGetContext(string sessionId, string role, string message)
@@ -34,9 +35,9 @@ public class InMemoryChatHistoryManager : IChatHistoryManager
         {
             history.Add(new ChatRequest { Role = role, Message = message });
 
-            if (history.Count > _maxHistorySize)
+            if (history.Count > _options.MaxHistoryMessages)
             {
-                history.RemoveRange(0, history.Count - _maxHistorySize);
+                history.RemoveRange(0, history.Count - _options.MaxHistoryMessages);
             }
 
             var sb = new StringBuilder();
@@ -46,6 +47,7 @@ public class InMemoryChatHistoryManager : IChatHistoryManager
                 sb.AppendLine($"{msg.Role}: {msg.Message}");
             }
             
+            Console.WriteLine($"cache string - {sb};");
             return sb.ToString();
         }
     }
