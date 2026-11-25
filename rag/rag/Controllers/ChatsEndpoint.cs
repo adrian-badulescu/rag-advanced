@@ -15,8 +15,6 @@ public static class ChatsEndpoint
                 return Results.BadRequest(new {error = "Please provide a message or a shorter one"});
             }
             
-            Console.WriteLine($"ENDPOINT - {request.SessionId} - {request.Role} - {request.Message}");
-            
             string responseMessage = await chatService.GetAiResponseAsync(request.SessionId, request.Role,request.Message);
 
             return Results.Ok(responseMessage);

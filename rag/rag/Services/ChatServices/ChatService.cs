@@ -52,6 +52,7 @@ public class ChatService : IChatService
             {
                 maxOutputTokens = _options.MaxOutputTokens,
                 temperature = _options.Temperature,
+                stopSequences = new string[] { "###" }
             }
         };
         
@@ -64,15 +65,17 @@ public class ChatService : IChatService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Google API Error Details: {errorContent}");
-                return $"Error in communication with Google Gemini API: {response.StatusCode} - {errorContent}";
+                throw new HttpRequestException(response.ReasonPhrase, null, response.StatusCode);
             }
             
             var result =  await response.Content.ReadFromJsonAsync<GeminiChatResponse>();
             var responseText = result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text
                                ?? "No response returned from the LLM model.";
             
-            var finalContext  = _historyManager.AddAndGetContext(session, "Assistant", responseText);
-            Console.WriteLine($"chat service promptFinal - {finalContext};");
+            responseText = responseText.Trim();
+            
+            var finalContext  = _historyManager.AddAndGetContext(session, "model", responseText);
+            
             return responseText;
         }
         catch (Exception ex)
